@@ -1,1 +1,116 @@
+# This is a Python script that calls the Gemini AI.
+# This would run on a server as your "back-end".
+# To run this, you would need Python and the 'requests' library installed.
+# (e.g., 'pip install requests')
 
+import requests
+import json
+
+# --- IMPORTANT API KEY NOTE ---
+# You must get your own API key from Google's AI Studio.
+# This script CANNOT use the empty "" key that the web version uses.
+# Put your key here. For now, it's empty, so the script won't run.
+API_KEY = "YOUR_OWN_API_KEY_GOES_HERE" 
+
+# The API endpoint for the Gemini model
+API_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key={API_KEY}"
+
+def get_ai_explanation(topic):
+    """
+    Calls the Google Gemini AI to get a simple explanation of a topic.
+    """
+    
+    # This is the same system prompt we used in the HTML file.
+    # It tells the AI *how* to behave (like a teacher for a child).
+    system_prompt = """
+    You are 'EduHelper', a friendly, patient, and encouraging AI tutor.
+    Your audience is a child between 8 and 14 years old.
+    Your goal is to explain the user's topic in a simple, clear, and engaging way.
+    
+    Follow these rules:
+    1.  Keep it simple: Use simple words and short sentences.
+    2.  Be encouraging: Use a positive and friendly tone.
+    3.  Use analogies: If possible, use a simple analogy a child can understand.
+    4.  No jargon: Avoid complex technical terms. If you must use one, explain it immediately.
+    5.  Be concise: Keep the explanation to 2-3 short paragraphs.
+    """
+
+    user_query = f"Please explain this topic to me: \"{topic}\""
+
+    # This is the "payload" or data we send to the AI
+    payload = {
+        "contents": [
+            {"parts": [{"text": user_query}]}
+        ],
+        "systemInstruction": {
+            "parts": [{"text": system_prompt}]
+        },
+    }
+
+    # Set the headers for the API request
+    headers = {
+        "Content-Type": "application/json"
+    }
+
+    try:
+        # Make the POST request to the API
+        response = requests.post(API_URL, headers=headers, data=json.dumps(payload))
+        
+        # Raise an error if the request was bad
+        response.raise_for_status() 
+
+        # Parse the JSON response
+        result = response.json()
+        
+        # Extract the text from the response
+        candidate = result.get("candidates", [{}])[0]
+        text = candidate.get("content", {}).get("parts", [{}])[0].get("text")
+
+        if text:
+            return text
+        else:
+            print("Error: Could not find text in response. Full response:")
+            print(result)
+            return "Sorry, I couldn't get an answer. (No text in response)"
+
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP Error: {http_err}")
+        print(f"Response Content: {response.text}")
+        if response.status_code == 400:
+             return "Sorry, there might be an issue with the API key. Please check it."
+        return f"Sorry, an HTTP error occurred: {http_err}"
+    except Exception as err:
+        print(f"Other Error: {err}")
+        return f"Sorry, a non-HTTP error occurred: {err}"
+
+# --- Main part of the program ---
+if __name__ == "__main__":
+    print("--- AI Study Helper (Python Backend) ---")
+    print("Type 'exit' or 'quit' to stop the program.\n")
+
+    if API_KEY == "YOUR_OWN_API_KEY_GOES_HERE":
+        print("=" * 50)
+        print("WARNING: API_KEY is not set in the script.")
+        print("Please get an API key from Google AI Studio and")
+        print("paste it into the API_KEY variable in the code.")
+        print("=" * 50 + "\n")
+
+    while True:
+        # Get topic from the user
+        topic = input("What topic do you want to learn about? \n> ")
+
+        if not topic:
+            continue
+        
+        if topic.lower() in ['exit', 'quit']:
+            break
+
+        print("\nThinking...\n")
+        
+        # Get the explanation
+        explanation = get_ai_explanation(topic)
+
+        # Print the explanation
+        print("--- Here's your explanation ---")
+        print(explanation)
+        print("-" * (30 + 10) + "\n")
