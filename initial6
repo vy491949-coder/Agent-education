@@ -1,0 +1,3 @@
+runner = InMemoryRunner(agent=root_agent)
+
+print("✅ Runner created.")
